@@ -20,6 +20,7 @@ int cost(graph *G, int *path){
   return cost_f;
 }
 
+/*
 void solve_tsp(graph *G,
               int *path,
               int l,
@@ -43,6 +44,8 @@ void solve_tsp(graph *G,
     }
   }
 }
+*/
+
 
 bool is_feasible(graph *G, int *path, int pos, int current){
   bool restricted = false;
@@ -67,7 +70,7 @@ bool is_feasible(graph *G, int *path, int pos, int current){
     }
   }
 
-  // não achou, a sub-árvore a ser explorada é inviável.
+  // a sub-árvore a ser explorada é inviável.
   return false;
 }
 
