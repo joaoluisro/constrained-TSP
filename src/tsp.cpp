@@ -4,6 +4,8 @@
 #include "..\headers\graph.h"
 using namespace std;
 
+typedef int (* Boundval)(int *x);
+
 int cost(graph *G, int *path){
   int cost_f = 0;
   int index_i, index_j;
@@ -74,6 +76,7 @@ bool is_feasible(graph *G, int *path, int pos, int current){
   return false;
 }
 
+
 void solve_tsp_restriction(graph *G,
                           int *path,
                           int l,
@@ -117,5 +120,139 @@ void solve_tsp_restriction(graph *G,
         optimal_path[i] = path[i];
       }
     }
+  }
+}
+
+
+void sort(int *array){
+
+}
+
+void solve_tsp_restriction_branch_and_bound(graph *G,
+                                          int *path,
+                                          int l,
+                                          vector<int> possible,
+                                          int &best,
+                                          int optimal_path[],
+                                          int *choices,
+                                          int *bounds,
+                                          int xlast,
+                                          Boundval B){
+
+
+  // verifica se o caminho chegou no tamanho máximo
+  if(l == G->n){
+    // calcula o custo total do caminho
+    int c = cost(G, path);
+
+    // se o caminho é melhor, atualize o melhor caminho
+    if(best > c){
+      best = c;
+      for(int i = 0; i < G->n; i++){
+        optimal_path[i] = path[i];
+      }
+    }
+    return;
+  }
+
+  int k = 0;
+
+  // cria um vector<int> temporario para armazenar as possibilidades
+  // tmp guarda todos os nodos que ainda podem ser explorados fora o nodo atual
+  vector<int> tmp;
+  if(l == 0){
+    tmp.push_back(0);
+  }
+  else if(l == 1){
+    for(int i = 0; i < G->n ; i++){
+      tmp.push_back(i);
+    }
+  }
+  else{
+    tmp = possible;
+    tmp.erase(tmp.begin() + xlast);
+  }
+
+  // explora todas as possibilidades de sub-árvores
+  for(int i = 0; i < tmp.size(); i++){
+
+    bool restricted = false;
+    int current = tmp[i];
+
+    // verifica se o caminho é viável
+    if(!is_feasible(G, path, l, current)){
+      continue;
+    }
+
+    // atualiza o camminho para que o nodo atual esteja incluso no caminho escolhido
+    path[l] = current;
+
+    // calcula o valor do limite inferior
+    choices[k] = current;
+    bounds[k] = B(path);
+    k++;
+  }
+
+  sort(choices);
+  sort(bounds);
+
+  for(int i = 0; i < k - 1; i++){
+    if(bounds[i] >= best) return;
+    path[l] = choices[i];
+    solve_tsp_restriction(G, path, l+1, tmp, best, optimal_path, i);
+  }
+}
+
+
+void solve_tsp_restriction_branch_and_bound_test(graph *G,
+                                          int *path,
+                                          int l,
+                                          vector<int> possible,
+                                          int &best,
+                                          int optimal_path[],
+                                          int xlast){
+
+
+  // verifica se o caminho chegou no tamanho máximo
+  if(l == G->n){
+    // calcula o custo total do caminho
+    int c = cost(G, path);
+    // se o caminho é melhor, atualize o melhor caminho
+    if(best > c){
+      best = c;
+      for(int i = 0; i < G->n ; i++){
+        optimal_path[i] = path[i];
+      }
+    }
+    return;
+  }
+  // cria um vector<int> temporario para armazenar as possibilidades
+  // tmp guarda todos os nodos que ainda podem ser explorados fora o nodo atual
+  vector<int> tmp;
+  if(l == 0){
+    tmp.push_back(0);
+  } else if(l == 1){
+    for(int i = 1; i < G->n ; i++){
+      tmp.push_back(i);
+    }
+  }
+  else{
+    tmp = possible;
+    tmp.erase(tmp.begin() + xlast);
+  }
+
+  // explora todas as possibilidades de sub-árvores
+  for(int i = 0; i < tmp.size(); i++){
+    bool restricted = false;
+    int current = tmp[i];
+
+    // verifica se o caminho é viável
+    if(!is_feasible(G, path, l, current)){
+      continue;
+    }
+
+    // atualiza o camminho para que o nodo atual esteja incluso no caminho escolhido
+    path[l] = current;
+    solve_tsp_restriction_branch_and_bound_test(G, path, l+1, tmp, best, optimal_path, i);
   }
 }
