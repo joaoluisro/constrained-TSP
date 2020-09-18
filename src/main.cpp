@@ -2,9 +2,11 @@
 #include <string.h>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 #include "..\headers\graph.h"
 #include "..\headers\tsp.h"
 using namespace std;
+using namespace std::chrono;
 
 int main(){
 
@@ -31,23 +33,14 @@ int main(){
   }
 
 
-  solve_tsp_restriction_branch_and_bound(G, path, 0, possible, Optbest, optimal_path, choices, bounds, 0, MinCostBound);
-  // invoca o solver
-  cout << "------------------------------------" << "\n";
-  for(int i = 0; i < G->n; i++){
-    cout << optimal_path[i] << "\n";
-  }
-  for(int i = 0; i < n; i++){
-    path[i] = 0;
-    optimal_path[i] = 1;
-    choices[i] = 0;
-    bounds[i] = 0;
-  }
-  cout << "------------------------------------" << "\n";
-  Optbest = 10000000;
-  solve_tsp_restriction_branch_and_bound_test(G, path, 0, possible, Optbest, optimal_path, 0);
+  auto start = high_resolution_clock::now();
+  solve_tsp_restriction_branch_and_bound(G, path, 0, possible, Optbest, optimal_path, choices, bounds, MinCostBound);
+  auto stop = high_resolution_clock::now();
+  auto duration = duration_cast<microseconds>(stop - start);
 
-  for(int i = 0; i < G->n; i++){
+  cout << "Time taken by function: " << duration.count() << " microseconds" << endl;
+  cout << cost(G, optimal_path) << "\n";
+  for(int i = 1; i < G->n; i++){
     cout << optimal_path[i] << "\n";
   }
 }
