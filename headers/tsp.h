@@ -6,6 +6,10 @@ int cost(graph *G, int *partial_path, int l);
 
 int MinCostBound(graph *G, int l, int *partial_solution);
 
+int Reduce(int *M, int size);
+
+int ReducedBound(graph *G, int l, int *partial_solution);
+
 int get_index(std::vector<int> array, int elm);
 
 void solve_tsp_restriction_branch_and_bound(graph *G,
@@ -14,6 +18,5 @@ void solve_tsp_restriction_branch_and_bound(graph *G,
                                             std::vector<int> possible,
                                             int &best,
                                             int optimal_path[],
-                                            int *choices,
-                                            int *bounds,
-                                            Boundval B);
+                                            Boundval B,
+                                            int &nodes);

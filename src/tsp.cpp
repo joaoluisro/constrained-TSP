@@ -2,9 +2,10 @@
 #include <vector>
 #include <string.h>
 #include <algorithm>
+#include <limits>
 #include "..\headers\graph.h"
 using namespace std;
-
+#define INF 10000000;
 typedef int (* Boundval)(graph *G, int l, int *partial_solution);
 
 int cost(graph *G, int *path){
@@ -28,9 +29,9 @@ int cost(graph *G, int *partial_path, int l){
   int index_i, index_j;
 
   // faz o somatório de cada trajeto
-  for(int i = 0; i < l; i++){
-    index_i = partial_path[i];
-    index_j = partial_path[i + 1];
+  for(int i = 1; i < l; i++){
+    index_i = partial_path[i- 1];
+    index_j = partial_path[i];
     cost_f += G->edge_set[index_j + (index_i * (G->n))];
   }
   return cost_f;
@@ -80,7 +81,7 @@ int MinCostBound(graph *G, int l, int *partial_solution){
   // segunda parte
   vector<int> Y;
   for(int i = 1; i < G->n ; i++) Y.push_back(i);
-  for(int i = 1; i < l; i++) Y.erase(Y.begin() + get_index(Y, partial_solution[l]) );
+  for(int i = 0; i < l; i++) Y.erase(Y.begin() + get_index(Y, partial_solution[i]) );
 
   int smallest = G->edge_set[(partial_solution[l - 1] * G->n) + Y[0]];
   for(int i = 1; i < l; i++){
@@ -105,8 +106,101 @@ int MinCostBound(graph *G, int l, int *partial_solution){
   return MCB;
 }
 
-int ReducedBound(int *x){
+int Reduce(int *M, int size){
+  int val = 0;
+  int min_val;
 
+
+  for(int i = 0; i < size; i++){
+    min_val = M[i * (size)];
+    // acesso a matriz: M[i * (n) + j] = M[i][j]
+    for(int j = 1; j < size; j++){
+      if(M[(i * size) + j] < min_val && i != j && M[(i * size) + j] >= 0) min_val = M[(i * size) + j];
+    }
+    for(int j = 0; j < size; j++){
+      M[(i * size) + j] -= min_val;
+    }
+    val += min_val;
+  }
+
+  for(int j = 0; j < size; j++){
+    min_val = M[j];
+    for(int i = 1; i < size; i++){
+      if(M[(i * size) + j] < min_val && i != j && M[(i * size) + j] >= 0) min_val = M[(i * size) + j];
+    }
+    for(int i = 0; i < size; i++){
+      M[(i * size) + j] -= min_val;
+    }
+    val += min_val;
+  }
+
+  return val;
+
+}
+
+int ReducedBound(graph *G, int l, int *partial_solution){
+
+
+  int dim = G->n - l + 1;
+  int *M = new int[dim * dim];
+  M[0] = INF;
+  int j = 1;
+
+  vector<int> Y;
+  for(int i = 0; i < G->n ; i++) Y.push_back(i);
+  for(int i = 0; i < l; i++) Y.erase(Y.begin() + get_index(Y, partial_solution[i]));
+
+
+  for(int i = 0; i < Y.size(); i++){
+    M[j] = G->edge_set[(partial_solution[l] * G->n) + Y[i]];
+    j++;
+  }
+
+  j = 1;
+  for(int i = 0; i < Y.size(); i++){
+    M[(j * dim)] = G->edge_set[(Y[i] * G->n)];
+    j++;
+  }
+
+  int i = 1;
+  for(int k = 0; k < Y.size(); k++){
+    j = 1;
+    for(int z = 0; z < Y.size(); z++){
+      M[(i * dim) + j] = G->edge_set[(Y[k] * G->n) + Y[z]];
+      j++;
+    }
+    i++;
+  }
+
+
+  int ans = Reduce(M, dim);
+  ans += cost(G, partial_solution, l);
+  return ans;
+}
+
+void sort_choice_and_bound(int *choices, int *bounds, int k){
+
+  int min;
+  int temp, aux, temp2;
+
+  for(int i = 0; i < k; i++){
+    min = bounds[i];
+    aux = i;
+    for(int j = i; j < k; j++){
+      if(bounds[j] < min){
+        min = bounds[j];
+        aux = j;
+      }
+    }
+
+    temp = bounds[i];
+    bounds[i] = min;
+    bounds[aux] = temp;
+
+    temp2 = choices[i];
+    choices[i] = choices[aux];
+    choices[aux] = temp2;
+  }
 }
 
 void solve_tsp_restriction_branch_and_bound(graph *G,
@@ -115,9 +209,8 @@ void solve_tsp_restriction_branch_and_bound(graph *G,
                                           vector<int> possible,
                                           int &best,
                                           int optimal_path[],
-                                          int *choices,
-                                          int *bounds,
-                                          Boundval B){
+                                          Boundval B,
+                                          int &nodes){
 
   // verifica se o caminho chegou no tamanho máximo
 
@@ -151,30 +244,29 @@ void solve_tsp_restriction_branch_and_bound(graph *G,
   }
 
   int k = 0;
-
+  int *choices = new int[tmp.size()];
+  int *bounds = new int[tmp.size()];
   // explora todas as possibilidades de sub-árvores
   for(int i = 0; i < tmp.size(); i++){
 
-    bool restricted = false;
     int current = tmp[i];
 
     // atualiza o camminho para que o nodo atual esteja incluso no caminho escolhido
     path[l] = current;
 
     // calcula o valor do limite inferior e atualiza as possibilidades
-
     choices[k] = current;
     bounds[k] = B(G, l, path);
     k++;
   }
 
   // ordena os vetores de escolha e de bounds
-  sort(choices, choices + k);
-  sort(bounds, bounds + k);
+
+  sort_choice_and_bound(choices, bounds, k);
 
   for(int i = 0; i < k; i++){
     // verifica se vale a pena seguir a sub-arvore
-    if(bounds[i] > best) return;
+    if(bounds[i] >= best) return;
 
     // atualiza o caminho
     path[l] = choices[i];
@@ -182,7 +274,9 @@ void solve_tsp_restriction_branch_and_bound(graph *G,
     // verifica se o caminho é viável
     if(!is_feasible(G, path, l, choices[i])) continue;
 
-    solve_tsp_restriction_branch_and_bound(G, path, l+1, tmp, best, optimal_path, choices, bounds, B);
+    nodes++;
+
+    solve_tsp_restriction_branch_and_bound(G, path, l+1, tmp, best, optimal_path, B, nodes);
   }
 
 }

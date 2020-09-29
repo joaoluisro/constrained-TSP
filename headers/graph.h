@@ -8,6 +8,7 @@ typedef struct graph{
   graph(){
     //A[i][j] = x[i + (j * # cols)]
     std::cin >> n;
+    n++;
     edge_set = new int[n * n];
     std::cin >> m;
     restrictions = new int[2 * m];
